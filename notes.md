@@ -294,3 +294,63 @@ While we are here I did another deploy just to make the agent pods have
 
 I should instead of using the full jenkins-values.yml just changing the fields I changed.
 
+So the kubernetes jenkins plugin doesn't seem to work with a jenkinsPrefixUri....
+`SEVERE: http://master-jenkins2.default.svc.cluster.local:8080/tcpSlaveAgentListener/ is invalid: 404 Not Found`
+It isn't putting the jenkinsPrefixUri on the url
+
+I found that I can set the JENKINS_URL environment variable in the pod_template configuration area.
+This made it connect.
+
+I then replaced the container with
+`jenkins/inbound-agent:4.3-4`
+
+Now I'm playing around with pipelines -- seems like the preferred way of dealing with it
+I am now able to use python container and docker container to run tests
+
+#!/usr/bin/env groovy
+
+def label = "docker-jenkins-${UUID.randomUUID().toString()}"
+```
+podTemplate(label: label,
+        containers: [
+                containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:alpine'),
+                containerTemplate(name: 'python', image: 'python', ttyEnabled: true, command: 'cat'),
+                containerTemplate(image: 'docker', name: 'docker', command: 'cat', ttyEnabled: true)
+            ],
+            volumes: [
+                hostPathVolume(hostPath: '/var/run/docker.sock', mountPath: '/var/run/docker.sock'),
+            ],
+        ) {
+    node(label) {
+        dir("${env.WORKSPACE}") {
+            stage('Checkout') {
+                timeout(time: 3, unit: 'MINUTES') {
+                    // checkout scm
+                }
+            }
+
+            stage('Check Python Container') {
+                container('python') {
+                    sh '''#!/bin/bash
+                    python --version'''
+                }
+            }
+            
+            stage('Docker Hello World') {
+                container('docker') {
+                    sh "docker run hello-world"
+                }
+            }
+            
+            stage('pakage') {
+                echo "Hello World"
+            }
+        }
+    }
+}
+```
+volumes.hostPathVolume mounts the NODE'S docker socket to the docker daemon.
+Only works on nodes where docker is installed.
+
+Still not sure why the command is 'cat'.
+

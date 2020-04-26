@@ -124,8 +124,8 @@ master:
   #     value: "http://192.168.64.1:3128"
   # Set min/max heap here if needed with:
   # javaOpts: "-Xms512m -Xmx512m"
-  # jenkinsOpts: ""
-  # jenkinsUrl: ""
+  # jenkinsOpts: "--prefix=/jenkins"
+  # jenkinsUrl: "http://master-jenkins2:8080/jenkins"
   # If you set this prefix and use ingress controller then you might want to set the ingress path below
   jenkinsUriPrefix: "/jenkins"
   # Enable pod security context (must be `true` if runAsUser or fsGroup are set)
@@ -326,7 +326,7 @@ master:
   tolerations: []
   # Leverage a priorityClass to ensure your pods survive resource shortages
   # ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/
-  # priorityClass: system-cluster-critical
+  # priorityClass: system-cluster-critica
   podAnnotations: {}
   # Add deployment annotation
   deploymentAnnotations: {}
@@ -351,6 +351,7 @@ master:
     apiVersion: "extensions/v1beta1"
     labels: {}
     annotations: {}
+    #  nginx.ingress.kubernetes.io/rewrite-target: /$2
     kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
     # Set this path to jenkinsUriPrefix above or use annotations to rewrite path
@@ -361,297 +362,11 @@ master:
     # - secretName: jenkins.cluster.local
     #   hosts:
     #     - jenkins.cluster.local
-
-  # If you're running on GKE and need to configure a backendconfig
-  # to finish ingress setup, use the following values.
-  # Docs: https://cloud.google.com/kubernetes-engine/docs/concepts/backendconfig
-  backendconfig:
-    enabled: false
-    apiVersion: "extensions/v1beta1"
-    name:
-    labels: {}
-    annotations: {}
-    spec: {}
-
-  # Openshift route
-  route:
-    enabled: false
-    labels: {}
-    annotations: {}
-    # path: "/jenkins"
-
-  additionalConfig: {}
-
-  # master.hostAliases allows for adding entries to Pod /etc/hosts:
-  # https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/
-  hostAliases: []
-  # - ip: 192.168.50.50
-  #   hostnames:
-  #     - something.local
-  # - ip: 10.0.50.50
-  #   hostnames:
-  #     - other.local
-
-  # Expose Prometheus metrics
-  prometheus:
-    # If enabled, add the prometheus plugin to the list of plugins to install
-    # https://plugins.jenkins.io/prometheus
-    enabled: false
-    # Additional labels to add to the ServiceMonitor object
-    serviceMonitorAdditionalLabels: {}
-    # Set a custom namespace where to deploy ServiceMonitor resource
-    # serviceMonitorNamespace: monitoring
-    scrapeInterval: 60s
-    # This is the default endpoint used by the prometheus plugin
-    scrapeEndpoint: /prometheus
-    # Additional labels to add to the PrometheusRule object
-    alertingRulesAdditionalLabels: {}
-    # An array of prometheus alerting rules
-    # See here: https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/
-    # The `groups` root object is added by default, simply add the rule entries
-    alertingrules: []
-
-  # Can be used to disable rendering master test resources when using helm template
-  testEnabled: true
-
 agent:
-  enabled: true
-  image: "jenkins/jnlp-slave"
-  tag: "3.27-1"
-  customJenkinsLabels: []
-  # name of the secret to be used for image pulling
-  imagePullSecretName:
-  componentName: "jenkins-slave"
-  privileged: false
   resources:
     requests:
-      cpu: "4096m"
-      memory: "4096Mi"
+      cpu: "2048m"
+      memory: "2048Mi"
     limits:
-      cpu: "4096m"
-      memory: "4096Mi"
-  # You may want to change this to true while testing a new image
-  alwaysPullImage: false
-  # Controls how agent pods are retained after the Jenkins build completes
-  # Possible values: Always, Never, OnFailure
-  podRetention: "Never"
-  # You can define the volumes that you want to mount for this container
-  # Allowed types are: ConfigMap, EmptyDir, HostPath, Nfs, PVC, Secret
-  # Configure the attributes as they appear in the corresponding Java class for that type
-  # https://github.com/jenkinsci/kubernetes-plugin/tree/master/src/main/java/org/csanchez/jenkins/plugins/kubernetes/volumes
-  volumes: []
-  # - type: ConfigMap
-  #   configMapName: myconfigmap
-  #   mountPath: /var/myapp/myconfigmap
-  # - type: EmptyDir
-  #   mountPath: /var/myapp/myemptydir
-  #   memory: false
-  # - type: HostPath
-  #   hostPath: /var/lib/containers
-  #   mountPath: /var/myapp/myhostpath
-  # - type: Nfs
-  #   mountPath: /var/myapp/mynfs
-  #   readOnly: false
-  #   serverAddress: "192.0.2.0"
-  #   serverPath: /var/lib/containers
-  # - type: PVC
-  #   claimName: mypvc
-  #   mountPath: /var/myapp/mypvc
-  #   readOnly: false
-  # - type: Secret
-  #   defaultMode: "600"
-  #   mountPath: /var/myapp/mysecret
-  #   secretName: mysecret
-  # Pod-wide ennvironment, these vars are visible to any container in the agent pod
-  envVars: []
-  # - name: PATH
-  #   value: /usr/local/bin
-  nodeSelector: {}
-  # Key Value selectors. Ex:
-  # jenkins-agent: v1
-
-  # Executed command when side container gets started
-  command:
-  args: "${computer.jnlpmac} ${computer.name}"
-  # Side container name
-  sideContainerName: "jnlp"
-  # Doesn't allocate pseudo TTY by default
-  TTYEnabled: false
-  # Max number of spawned agent
-  containerCap: 10
-  # Pod name
-  podName: "default"
-  # Allows the Pod to remain active for reuse until the configured number of
-  # minutes has passed since the last step was executed on it.
-  idleMinutes: 0
-  # Raw yaml template for the Pod. For example this allows usage of toleration for agent pods.
-  # https://github.com/jenkinsci/kubernetes-plugin#using-yaml-to-define-pod-templates
-  # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
-  yamlTemplate: ""
-  # yamlTemplate: |-
-  #   apiVersion: v1
-  #   kind: Pod
-  #   spec:
-  #     tolerations:
-  #     - key: "key"
-  #       operator: "Equal"
-  #       value: "value"
-  # Timeout in seconds for an agent to be online
-  slaveConnectTimeout: 100
-
-  # Below is the implementation of custom pod templates for the default configured kubernetes cloud.
-  # Add a key under podTemplates for each pod template. Each key (prior to | character) is just a label, and can be any value.
-  # Keys are only used to give the pod template a meaningful name.  The only restriction is they may only contain RFC 1123 \ DNS label
-  # characters: lowercase letters, numbers, and hyphens. Each pod template can contain multiple containers.
-  # For this pod templates configuration to be loaded the following values must be set:
-  # master.JCasC.enabled: true
-  # master.JCasC.defaultConfig: true
-  # Best reference is https://<jenkins_url>/configuration-as-code/reference#Cloud-kubernetes. The example below creates a python pod template.
-  podTemplates: {}
-  #  python: |
-  #    - name: python
-  #      label: jenkins-python
-  #      serviceAccount: jenkins
-  #      containers:
-  #        - name: python
-  #          image: python:3
-  #          command: "/bin/sh -c"
-  #          args: "cat"
-  #          ttyEnabled: true
-  #          privileged: true
-  #          resourceRequestCpu: "400m"
-  #          resourceRequestMemory: "512Mi"
-  #          resourceLimitCpu: "1"
-  #          resourceLimitMemory: "1024Mi"
-
-# Here you can add additional agents
-# They inherit all values from `agent` so you only need to specify values which differ
-additionalAgents: {}
-#  maven:
-#    podName: maven
-#    customJenkinsLabels: maven
-#    # An example of overriding the jnlp container
-#    # sideContainerName: jnlp
-#    image: jenkins/jnlp-agent-maven
-#    tag: latest
-#  python:
-#    podName: python
-#    customJenkinsLabels: python
-#    sideContainerName: python
-#    image: python
-#    tag: "3"
-#    command: "/bin/sh -c"
-#    args: "cat"
-#    TTYEnabled: true
-
-persistence:
-  enabled: true
-  ## A manually managed Persistent Volume and Claim
-  ## Requires persistence.enabled: true
-  ## If defined, PVC must be created manually before volume will be bound
-  existingClaim:
-  ## jenkins data Persistent Volume Storage Class
-  ## If defined, storageClassName: <storageClass>
-  ## If set to "-", storageClassName: "", which disables dynamic provisioning
-  ## If undefined (the default) or set to null, no storageClassName spec is
-  ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
-  ##   GKE, AWS & OpenStack)
-  ##
-  storageClass:
-  annotations: {}
-  accessMode: "ReadWriteOnce"
-  size: "8Gi"
-  volumes:
-  #  - name: nothing
-  #    emptyDir: {}
-  mounts:
-  #  - mountPath: /var/nothing
-  #    name: nothing
-  #    readOnly: true
-
-networkPolicy:
-  # Enable creation of NetworkPolicy resources.
-  enabled: false
-  # For Kubernetes v1.4, v1.5 and v1.6, use 'extensions/v1beta1'
-  # For Kubernetes v1.7, use 'networking.k8s.io/v1'
-  apiVersion: networking.k8s.io/v1
-  # You can allow agents to connect from both within the cluster (from within specific/all namespaces) AND/OR from a given external IP range
-  internalAgents:
-    allowed: true
-    namespaceLabels: {}
-      # project: myproject
-  externalAgents: {}
-  #   ipCIDR: 172.17.0.0/16
-  #   except:
-  #     - 172.17.1.0/24
-
-## Install Default RBAC roles and bindings
-rbac:
-  create: true
-  readSecrets: false
-
-serviceAccount:
-  create: true
-  # The name of the service account is autogenerated by default
-  name:
-  annotations: {}
-
-serviceAccountAgent:
-  # Specifies whether a ServiceAccount should be created
-  create: false
-  # The name of the ServiceAccount to use.
-  # If not set and create is true, a name is generated using the fullname template
-  name:
-  annotations: {}
-
-## Backup cronjob configuration
-## Ref: https://github.com/maorfr/kube-tasks
-backup:
-  # Backup must use RBAC
-  # So by enabling backup you are enabling RBAC specific for backup
-  enabled: false
-  # Used for label app.kubernetes.io/component
-  componentName: "backup"
-  # Schedule to run jobs. Must be in cron time format
-  # Ref: https://crontab.guru/
-  schedule: "0 2 * * *"
-  labels: {}
-  annotations: {}
-    # Example for authorization to AWS S3 using kube2iam
-    # Can also be done using environment variables
-    # iam.amazonaws.com/role: "jenkins"
-  image:
-    repository: "maorfr/kube-tasks"
-    tag: "0.2.0"
-  # Additional arguments for kube-tasks
-  # Ref: https://github.com/maorfr/kube-tasks#simple-backup
-  extraArgs: []
-  # Add existingSecret for AWS credentials
-  existingSecret: {}
-  ## Example for using an existing secret
-   # jenkinsaws:
-  ## Use this key for AWS access key ID
-     # awsaccesskey: jenkins_aws_access_key
-  ## Use this key for AWS secret access key
-     # awssecretkey: jenkins_aws_secret_key
-  # Add additional environment variables
-   # jenkinsgcp:
-  ## Use this key for GCP credentials
-     # gcpcredentials: credentials.json
-  env: []
-  # Example environment variable required for AWS credentials chain
-  # - name: "AWS_REGION"
-  #   value: "us-east-1"
-  resources:
-    requests:
-      memory: 1Gi
-      cpu: 1
-    limits:
-      memory: 1Gi
-      cpu: 1
-  # Destination to store the backup artifacts
-  # Supported cloud storage services: AWS S3, Minio S3, Azure Blob Storage, Google Cloud Storage
-  # Additional support can added. Visit this repository for details
-  # Ref: https://github.com/maorfr/skbn
-  destination: "s3://jenkins-data/backup"
-checkDeprecation: true
+      cpu: "2048m"
+      memory: "2048Mi"
