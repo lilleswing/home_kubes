@@ -247,3 +247,50 @@ although I am unsure if I have to destroy what I have and start from scratch.
 
 Still TODO opening up jenkins to the world on some port instead of doing kubectl proxy.
 I think it involves creating an ingress.
+
+
+# Adding Ingress to Jenkins
+
+https://kndrck.co/posts/microk8s_ingress_example/
+`microk8s.enable ingress`
+
+I dicked around for a real long time.
+The ingress appeared in the "Ingresses" Tab,
+but nothing worked.  I got 404 from outside the computer
+and 403 from rydon.
+
+I then installed the nginx
+[ingress controller](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-helm/)
+
+Then I redeployed Jenkins Via Helm
+
+```
+➜  home_kubes git:(master) ✗ helm upgrade -f jenkins-values.yaml master-jenkins2 stable/jenkins
+Release "master-jenkins2" has been upgraded. Happy Helming!
+NAME: master-jenkins2
+LAST DEPLOYED: Sat Apr 25 21:07:01 2020
+NAMESPACE: default
+STATUS: deployed
+REVISION: 3
+NOTES:
+1. Get your 'admin' user password by running:
+  printf $(kubectl get secret --namespace default master-jenkins2 -o jsonpath="{.data.jenkins-admin-password}" | base64 --decode);echo
+
+2. Visit http://rhydon
+
+3. Login with the password from step 1 and the username: admin
+
+
+For more information on running Jenkins on Kubernetes, visit:
+https://cloud.google.com/solutions/jenkins-on-container-engine
+```
+
+It Worked!
+[jenkins link](http://rhydon/jenkins/login)
+Also All My Old Jobs Are There!
+
+While we are here I did another deploy just to make the agent pods have
+4GB of Ram and 4CPU.
+
+I should instead of using the full jenkins-values.yml just changing the fields I changed.
+
